@@ -32,27 +32,30 @@ jobs:
 
     - name: Clone TDLib repository and checkout specific version
       run: |
-        echo "Cloning TDLib repository..."
+        echo "Cloning TDLib repository into 'td' directory..."
         git clone https://github.com/tdlib/td.git td
         cd td
-        echo "Current directory: $(pwd)"
+        echo "Current directory after clone and cd: $(pwd)"
         echo "Fetching all tags from remote 'origin'..."
         git fetch origin --tags 
         echo "Checking out tag v1.8.0..."
         git checkout v1.8.0
         echo "Current TDLib version/tag after checkout:"
         git describe --tags
+        echo "Listing content of 'td' directory:"
+        ls -la
 
     - name: Configure and Build TDLib with JNI
+      working-directory: ./td 
       run: |
-        cd td 
         mkdir -p build 
         cd build
+        echo "Current directory for CMake: $(pwd)"
         echo "Configuring CMake for TDLib JNI..."
         cmake \
           -DCMAKE_BUILD_TYPE=Release \
           -DTD_ENABLE_JNI=ON \
-          -DCMAKE_INSTALL_PREFIX:PATH=../../tdjni_install \
+          -DCMAKE_INSTALL_PREFIX:PATH=../tdjni_install \
           -DTD_ENABLE_LTO=ON \
           ..
         
@@ -63,14 +66,13 @@ jobs:
         cmake --install . --config Release
 
     - name: Build AAR using Gradle from TDLib example
+      working-directory: ./td/example/java/tdlib
       run: |
-        echo "Current directory before cd: $(pwd)"
-        cd td/example/java/tdlib
-        echo "Current directory after cd: $(pwd)"
+        echo "Current directory for Gradle build: $(pwd)"
         echo "Listing files in current directory:"
         ls -la
         echo "Building AAR with Gradle..."
-        gradle assembleRelease
+        gradle assembleRelease 
 
     - name: Upload AAR artifact
       uses: actions/upload-artifact@v4 
