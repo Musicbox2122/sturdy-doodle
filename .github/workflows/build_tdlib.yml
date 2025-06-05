@@ -21,13 +21,13 @@ jobs:
           zlib1g-dev \
           libssl-dev \
           openjdk-11-jdk \
-          gradle # <<< ДОБАВЛЯЕМ УСТАНОВКУ GRADLE
+          gradle
         echo "--- Installed versions ---"
         java -version
         cmake --version
         clang --version
         git --version
-        gradle -v # <<< ПРОВЕРЯЕМ ВЕРСИЮ GRADLE
+        gradle -v
         echo "-------------------------"
 
     - name: Clone TDLib repository and checkout specific version
@@ -52,7 +52,7 @@ jobs:
         cmake \
           -DCMAKE_BUILD_TYPE=Release \
           -DTD_ENABLE_JNI=ON \
-          -DCMAKE_INSTALL_PREFIX:PATH=../../tdjni_install \ # Изменил путь на ../../tdjni_install чтобы он был вне папки td
+          -DCMAKE_INSTALL_PREFIX:PATH=../../tdjni_install \
           -DTD_ENABLE_LTO=ON \
           ..
         
@@ -66,9 +66,7 @@ jobs:
       run: |
         cd td/example/java 
         echo "Building AAR with Gradle..."
-        # Убираем chmod, так как gradlew нет
-        # Пробуем использовать системный gradle
-        gradle :tdlib:assembleRelease # <<< ИЗМЕНЕНИЕ
+        gradle :tdlib:assembleRelease 
 
     - name: Upload AAR artifact
       uses: actions/upload-artifact@v4 
