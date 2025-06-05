@@ -1,17 +1,17 @@
 name: Build Specific TDLib Version (v1.8.0)
 
 on:
-  workflow_dispatch: # Позволяет запускать вручную
+  workflow_dispatch:
 
 jobs:
   build_tdlib_for_android:
-    runs-on: ubuntu-latest # Используем последнюю версию Ubuntu
+    runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code (full depth)
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0 # Клонируем всю историю нашего репозитория (где лежит этот workflow)
+        fetch-depth: 0
 
     - name: Install build dependencies
       run: |
@@ -20,7 +20,7 @@ jobs:
           gperf clang cmake make git \
           zlib1g-dev \
           libssl-dev \
-          openjdk-11-jdk # JDK для Gradle в примере TDLib
+          openjdk-11-jdk # Используем JDK 11, так как пример TDLib может быть нацелен на него
         echo "--- Installed versions ---"
         java -version
         cmake --version
@@ -31,19 +31,19 @@ jobs:
     - name: Clone TDLib repository and checkout specific version
       run: |
         echo "Cloning TDLib repository..."
-        git clone https://github.com/tdlib/td.git td # Стандартный полный клон
+        git clone https://github.com/tdlib/td.git td
         cd td
         echo "Current directory: $(pwd)"
         echo "Fetching all tags from remote 'origin'..."
-        git fetch origin --tags # Явно указываем origin и --tags
+        git fetch origin --tags 
         echo "Available tags (listing all, searching for v1.8.0):"
-        git tag --list # Выведем все теги для проверки
+        git tag --list 
         echo "--- Checking specifically for v1.8.0 ---"
         git tag --list | grep "v1.8.0" || echo "Tag v1.8.0 not found in list after explicit fetch"
         echo "-----------------------------------------"
         echo "Attempting to checkout tag v1.8.0..."
         git checkout v1.8.0
-        # git submodule update --init --recursive # Пока оставим закомментированным, активируем если понадобится
+        # git submodule update --init --recursive # Активируем на всякий случай, если TDLib использует их
         echo "Current TDLib version/tag after checkout:"
         git describe --tags
 
@@ -58,8 +58,11 @@ jobs:
               -DCMAKE_INSTALL_PREFIX:PATH=../example/java/td/libs/tdlib \
               -DTD_ENABLE_LTO=ON \
               ..
-        echo "Building tdjni target..."
-        cmake --build . --target tdjni --config Release -j$(nproc) 
+        echo "--- CMake configuration finished. Available make targets (first 20): ---"
+        cmake --build . --target help | head -n 30 # Показываем доступные цели make
+        echo "---------------------------------------------------------------------"
+        echo "Building td_jni target..." # <<< ИЗМЕНЕНИЕ: Пробуем td_jni
+        cmake --build . --target td_jni --config Release -j$(nproc) # <<< ИЗМЕНЕНИЕ: td_jni
 
     - name: Build AAR using Gradle from TDLib example
       run: |
@@ -71,6 +74,6 @@ jobs:
     - name: Upload AAR artifact
       uses: actions/upload-artifact@v4 
       with:
-        name: tdlib-android-1.8.0-release.aar # Имя артефакта изменено на v1.8.0
+        name: tdlib-android-1.8.0-release.aar 
         path: td/example/java/tdlib/build/outputs/aar/tdlib-release.aar 
-        if-no-files-found: error # Завершить с ошибкой, если файл не найден
+        if-no-files-found: error
