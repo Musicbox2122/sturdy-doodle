@@ -47,32 +47,23 @@ jobs:
         mkdir -p build 
         cd build
         echo "Configuring CMake for TDLib JNI..."
-        # Ключевой момент: CMake должен сгенерировать Java файлы ПЕРЕД тем, как собирать JNI.
-        # Обычно это происходит при запуске cmake на верхнем уровне.
-        # Флаг -DCMAKE_INSTALL_PREFIX может быть важен для того, куда попадут .so и .java файлы
-        # для последующего подхвата Gradle-проектом example/java.
         cmake -DCMAKE_BUILD_TYPE=Release \
               -DTD_ENABLE_JNI=ON \
-              -DCMAKE_INSTALL_PREFIX:PATH=../tdjni_install \ # Укажем отдельную папку для установки
+              -DCMAKE_INSTALL_PREFIX:PATH=../tdjni_install \ # Убрали комментарий с этой строки
               -DTD_ENABLE_LTO=ON \
               ..
         
         echo "Building ALL targets (this should include tdjni and generate Java sources)..."
-        cmake --build . --config Release -j$(nproc) # Собираем ВСЕ, что CMake сконфигурировал
+        cmake --build . --config Release -j$(nproc)
         
         echo "Installing built libraries and headers (optional, but good for verification)..."
-        cmake --install . --config Release # Устанавливаем в CMAKE_INSTALL_PREFIX
+        cmake --install . --config Release
 
     - name: Build AAR using Gradle from TDLib example
       run: |
         cd td/example/java 
         echo "Building AAR with Gradle..."
         chmod +x ./gradlew 
-        # Gradle скрипт в td/example/java должен быть настроен так,
-        # чтобы находить сгенерированные .java файлы и собранные .so библиотеки.
-        # Возможно, ему нужно указать путь к ../../tdjni_install
-        # или он ожидает их в определенном месте.
-        # Попробуем собрать как есть, если не получится - будем смотреть его build.gradle.
         ./gradlew :tdlib:assembleRelease 
 
     - name: Upload AAR artifact
