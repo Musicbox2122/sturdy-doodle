@@ -23,16 +23,19 @@ jobs:
         cmake --version
         clang --version
 
+
     - name: Clone TDLib repository and checkout specific version
       run: |
         git clone https://github.com/tdlib/td.git
         cd td
         echo "Current directory: $(pwd)"
         echo "Fetching all tags..."
-        git fetch --all --tags # <<< ДОБАВЛЕНО: Загружаем все теги
+        git fetch --all --tags 
+        echo "Available tags (first 20):" # <<< ДОБАВЛЕНО: Для отладки
+        git tag | head -n 20              # <<< ДОБАВЛЕНО: Для отладки
         echo "Checking out tag v1.8.35..."
-        git checkout tags/v1.8.35 # <<< ИЗМЕНЕНО: Явно указываем, что это тег
-        # git submodule update --init --recursive # Эту строку можно пока закомментировать или оставить, посмотрим, нужна ли она
+        git checkout v1.8.35 # <<< ИЗМЕНЕНО: Убрали 'tags/'
+        # git submodule update --init --recursive 
         echo "Current TDLib version/tag:"
         git describe --tags
 
