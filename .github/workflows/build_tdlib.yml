@@ -20,7 +20,7 @@ jobs:
           gperf clang cmake make git \
           zlib1g-dev \
           libssl-dev \
-          openjdk-11-jdk # Используем JDK 11, так как пример TDLib может быть нацелен на него
+          openjdk-11-jdk
         echo "--- Installed versions ---"
         java -version
         cmake --version
@@ -36,39 +36,43 @@ jobs:
         echo "Current directory: $(pwd)"
         echo "Fetching all tags from remote 'origin'..."
         git fetch origin --tags 
-        echo "Available tags (listing all, searching for v1.8.0):"
-        git tag --list 
-        echo "--- Checking specifically for v1.8.0 ---"
-        git tag --list | grep "v1.8.0" || echo "Tag v1.8.0 not found in list after explicit fetch"
-        echo "-----------------------------------------"
-        echo "Attempting to checkout tag v1.8.0..."
+        echo "Checking out tag v1.8.0..."
         git checkout v1.8.0
-        # git submodule update --init --recursive # Активируем на всякий случай, если TDLib использует их
         echo "Current TDLib version/tag after checkout:"
         git describe --tags
 
-    - name: Build TDLib JNI (Native part)
+    - name: Configure and Build TDLib with JNI
       run: |
         cd td 
         mkdir -p build 
         cd build
         echo "Configuring CMake for TDLib JNI..."
+        # Ключевой момент: CMake должен сгенерировать Java файлы ПЕРЕД тем, как собирать JNI.
+        # Обычно это происходит при запуске cmake на верхнем уровне.
+        # Флаг -DCMAKE_INSTALL_PREFIX может быть важен для того, куда попадут .so и .java файлы
+        # для последующего подхвата Gradle-проектом example/java.
         cmake -DCMAKE_BUILD_TYPE=Release \
               -DTD_ENABLE_JNI=ON \
-              -DCMAKE_INSTALL_PREFIX:PATH=../example/java/td/libs/tdlib \
+              -DCMAKE_INSTALL_PREFIX:PATH=../tdjni_install \ # Укажем отдельную папку для установки
               -DTD_ENABLE_LTO=ON \
               ..
-        echo "--- CMake configuration finished. Available make targets (first 20): ---"
-        cmake --build . --target help | head -n 30 # Показываем доступные цели make
-        echo "---------------------------------------------------------------------"
-        echo "Building td_jni target..." # <<< ИЗМЕНЕНИЕ: Пробуем td_jni
-        cmake --build . --target td_jni --config Release -j$(nproc) # <<< ИЗМЕНЕНИЕ: td_jni
+        
+        echo "Building ALL targets (this should include tdjni and generate Java sources)..."
+        cmake --build . --config Release -j$(nproc) # Собираем ВСЕ, что CMake сконфигурировал
+        
+        echo "Installing built libraries and headers (optional, but good for verification)..."
+        cmake --install . --config Release # Устанавливаем в CMAKE_INSTALL_PREFIX
 
     - name: Build AAR using Gradle from TDLib example
       run: |
         cd td/example/java 
         echo "Building AAR with Gradle..."
         chmod +x ./gradlew 
+        # Gradle скрипт в td/example/java должен быть настроен так,
+        # чтобы находить сгенерированные .java файлы и собранные .so библиотеки.
+        # Возможно, ему нужно указать путь к ../../tdjni_install
+        # или он ожидает их в определенном месте.
+        # Попробуем собрать как есть, если не получится - будем смотреть его build.gradle.
         ./gradlew :tdlib:assembleRelease 
 
     - name: Upload AAR artifact
