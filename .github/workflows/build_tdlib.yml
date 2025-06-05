@@ -47,16 +47,17 @@ jobs:
         mkdir -p build 
         cd build
         echo "Configuring CMake for TDLib JNI..."
-        cmake -DCMAKE_BUILD_TYPE=Release \
-              -DTD_ENABLE_JNI=ON \
-              -DCMAKE_INSTALL_PREFIX:PATH=../tdjni_install \ # Убрали комментарий с этой строки
-              -DTD_ENABLE_LTO=ON \
-              ..
+        cmake \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DTD_ENABLE_JNI=ON \
+          -DCMAKE_INSTALL_PREFIX:PATH=../tdjni_install \
+          -DTD_ENABLE_LTO=ON \
+          ..
         
-        echo "Building ALL targets (this should include tdjni and generate Java sources)..."
+        echo "Building ALL targets..."
         cmake --build . --config Release -j$(nproc)
         
-        echo "Installing built libraries and headers (optional, but good for verification)..."
+        echo "Installing built libraries and headers..."
         cmake --install . --config Release
 
     - name: Build AAR using Gradle from TDLib example
