@@ -64,9 +64,13 @@ jobs:
 
     - name: Build AAR using Gradle from TDLib example
       run: |
-        cd td/example/java 
+        echo "Current directory before cd: $(pwd)"
+        cd td/example/java/tdlib
+        echo "Current directory after cd: $(pwd)"
+        echo "Listing files in current directory:"
+        ls -la
         echo "Building AAR with Gradle..."
-        gradle :tdlib:assembleRelease 
+        gradle assembleRelease
 
     - name: Upload AAR artifact
       uses: actions/upload-artifact@v4 
