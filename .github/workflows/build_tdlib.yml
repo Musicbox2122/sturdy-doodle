@@ -30,12 +30,13 @@ jobs:
         gradle -v
         echo "-------------------------"
 
-    - name: Clone TDLib repository and checkout specific version
+    - name: Clone, Configure, Build TDLib, and Build AAR
       run: |
         echo "Cloning TDLib repository into 'td' directory..."
         git clone https://github.com/tdlib/td.git td
+        
         cd td
-        echo "Current directory after clone and cd: $(pwd)"
+        echo "Current directory after clone: $(pwd)"
         echo "Fetching all tags from remote 'origin'..."
         git fetch origin --tags 
         echo "Checking out tag v1.8.0..."
@@ -44,10 +45,7 @@ jobs:
         git describe --tags
         echo "Listing content of 'td' directory:"
         ls -la
-
-    - name: Configure and Build TDLib with JNI
-      working-directory: ./td 
-      run: |
+        
         mkdir -p build 
         cd build
         echo "Current directory for CMake: $(pwd)"
@@ -59,24 +57,23 @@ jobs:
           -DTD_ENABLE_LTO=ON \
           ..
         
-        echo "Building ALL targets..."
+        echo "Building ALL CMake targets..."
         cmake --build . --config Release -j$(nproc)
         
-        echo "Installing built libraries and headers..."
+        echo "Installing built CMake libraries and headers..."
         cmake --install . --config Release
-
-    - name: Build AAR using Gradle from TDLib example
-      working-directory: ./td/example/java/tdlib
-      run: |
+        
+        echo "Moving to Gradle project directory for AAR build..."
+        cd ../example/java/tdlib
         echo "Current directory for Gradle build: $(pwd)"
-        echo "Listing files in current directory:"
+        echo "Listing files in current Gradle project directory:"
         ls -la
         echo "Building AAR with Gradle..."
-        gradle assembleRelease 
+        gradle assembleRelease
 
     - name: Upload AAR artifact
       uses: actions/upload-artifact@v4 
       with:
         name: tdlib-android-1.8.0-release.aar 
-        path: td/example/java/tdlib/build/outputs/aar/tdlib-release.aar 
+        path: td/example/java/tdlib/build/outputs/aar/tdlib-release.aar
         if-no-files-found: error
