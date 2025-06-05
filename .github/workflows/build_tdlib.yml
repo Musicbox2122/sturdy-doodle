@@ -1,16 +1,80 @@
-name: Test Logging
+name: Build Specific TDLib Version (v1.8.0)
 
 on:
   workflow_dispatch:
 
 jobs:
-  test_job:
+  build_tdlib_for_android:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Simple Echo Step
-        run: echo "Hello, GitHub Actions! This is a log test."
-      
-      - name: Second Echo Step
-        run: |
-          echo "Line 1 of multiline echo."
-          echo "Line 2 of multiline echo."
+    - name: Checkout code (full depth)
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y \
+          gperf clang cmake make git \
+          zlib1g-dev \
+          libssl-dev \
+          openjdk-11-jdk \
+          gradle
+        echo "--- Installed versions ---"
+        java -version
+        cmake --version
+        clang --version
+        git --version
+        gradle -v
+        echo "-------------------------"
+
+    - name: Clone TDLib repository and checkout specific version
+      run: |
+        echo "Cloning TDLib repository..."
+        git clone https://github.com/tdlib/td.git td
+        cd td
+        echo "Current directory: $(pwd)"
+        echo "Fetching all tags from remote 'origin'..."
+        git fetch origin --tags 
+        echo "Checking out tag v1.8.0..."
+        git checkout v1.8.0
+        echo "Current TDLib version/tag after checkout:"
+        git describe --tags
+
+    - name: Configure and Build TDLib with JNI
+      run: |
+        cd td 
+        mkdir -p build 
+        cd build
+        echo "Configuring CMake for TDLib JNI..."
+        cmake \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DTD_ENABLE_JNI=ON \
+          -DCMAKE_INSTALL_PREFIX:PATH=../../tdjni_install \
+          -DTD_ENABLE_LTO=ON \
+          ..
+        
+        echo "Building ALL targets..."
+        cmake --build . --config Release -j$(nproc)
+        
+        echo "Installing built libraries and headers..."
+        cmake --install . --config Release
+
+    - name: Build AAR using Gradle from TDLib example
+      run: |
+        echo "Current directory before cd: $(pwd)"
+        cd td/example/java/tdlib
+        echo "Current directory after cd: $(pwd)"
+        echo "Listing files in current directory:"
+        ls -la
+        echo "Building AAR with Gradle..."
+        gradle assembleRelease
+
+    - name: Upload AAR artifact
+      uses: actions/upload-artifact@v4 
+      with:
+        name: tdlib-android-1.8.0-release.aar 
+        path: td/example/java/tdlib/build/outputs/aar/tdlib-release.aar 
+        if-no-files-found: error
