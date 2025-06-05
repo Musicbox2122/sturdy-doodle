@@ -1,4 +1,4 @@
-name: Build Specific TDLib Version (1.8.35)
+name: Build Specific TDLib Version (v1.8.0)
 
 on:
   workflow_dispatch: # Позволяет запускать вручную
@@ -36,13 +36,13 @@ jobs:
         echo "Current directory: $(pwd)"
         echo "Fetching all tags from remote 'origin'..."
         git fetch origin --tags # Явно указываем origin и --tags
-        echo "Available tags (listing all, searching for v1.8.35):"
+        echo "Available tags (listing all, searching for v1.8.0):"
         git tag --list # Выведем все теги для проверки
-        echo "--- Checking specifically for v1.8.35 ---"
-        git tag --list | grep "v1.8.35" || echo "Tag v1.8.35 not found in list"
+        echo "--- Checking specifically for v1.8.0 ---"
+        git tag --list | grep "v1.8.0" || echo "Tag v1.8.0 not found in list after explicit fetch"
         echo "-----------------------------------------"
-        echo "Attempting to checkout tag v1.8.35..."
-        git checkout v1.8.35
+        echo "Attempting to checkout tag v1.8.0..."
+        git checkout v1.8.0
         # git submodule update --init --recursive # Пока оставим закомментированным, активируем если понадобится
         echo "Current TDLib version/tag after checkout:"
         git describe --tags
@@ -53,32 +53,24 @@ jobs:
         mkdir -p build 
         cd build
         echo "Configuring CMake for TDLib JNI..."
-        # Флаги для сборки под Android могут требовать указания NDK и ABI,
-        # но пример TDLib/java обычно собирает для хост-системы (Linux в Action)
-        # а затем использует prebuilt нативные библиотеки для Android в .aar.
-        # Если мы хотим собрать .so для Android здесь, CMake команду нужно будет усложнить.
-        # Пока пробуем собрать как в их примере для Java.
         cmake -DCMAKE_BUILD_TYPE=Release \
               -DTD_ENABLE_JNI=ON \
               -DCMAKE_INSTALL_PREFIX:PATH=../example/java/td/libs/tdlib \
               -DTD_ENABLE_LTO=ON \
               ..
         echo "Building tdjni target..."
-        # Имя цели может быть td_jni или tdjni. Проверим по CMakeLists.txt, если будут проблемы.
         cmake --build . --target tdjni --config Release -j$(nproc) 
 
     - name: Build AAR using Gradle from TDLib example
       run: |
         cd td/example/java 
         echo "Building AAR with Gradle..."
-        # Даем права на выполнение gradlew
         chmod +x ./gradlew 
-        # Имя модуля в примере TDLib - :tdlib
         ./gradlew :tdlib:assembleRelease 
 
     - name: Upload AAR artifact
       uses: actions/upload-artifact@v4 
       with:
-        name: tdlib-android-1.8.35-release.aar 
+        name: tdlib-android-1.8.0-release.aar # Имя артефакта изменено на v1.8.0
         path: td/example/java/tdlib/build/outputs/aar/tdlib-release.aar 
         if-no-files-found: error # Завершить с ошибкой, если файл не найден
