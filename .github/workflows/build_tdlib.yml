@@ -28,9 +28,11 @@ jobs:
         git clone https://github.com/tdlib/td.git
         cd td
         echo "Current directory: $(pwd)"
+        echo "Fetching all tags..."
+        git fetch --all --tags # <<< ДОБАВЛЕНО: Загружаем все теги
         echo "Checking out tag v1.8.35..."
-        git checkout v1.8.35
-        git submodule update --init --recursive # На случай, если есть подмодули (например, для OpenSSL)
+        git checkout tags/v1.8.35 # <<< ИЗМЕНЕНО: Явно указываем, что это тег
+        # git submodule update --init --recursive # Эту строку можно пока закомментировать или оставить, посмотрим, нужна ли она
         echo "Current TDLib version/tag:"
         git describe --tags
 
