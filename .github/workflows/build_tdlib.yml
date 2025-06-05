@@ -1,0 +1,69 @@
+name: Build Specific TDLib Version (1.8.35)
+
+on:
+  workflow_dispatch: # Позволяет запускать вручную
+
+jobs:
+  build_tdlib_for_android:
+    runs-on: ubuntu-latest # Используем последнюю версию Ubuntu
+    
+    steps:
+    - name: Checkout code (not strictly needed for this build, but good practice)
+      uses: actions/checkout@v4
+
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y \
+          gperf clang cmake make git \
+          zlib1g-dev \
+          libssl-dev \
+          openjdk-11-jdk # JDK для Gradle в примере TDLib
+        java -version
+        cmake --version
+        clang --version
+
+    - name: Clone TDLib repository and checkout specific version
+      run: |
+        git clone https://github.com/tdlib/td.git
+        cd td
+        echo "Current directory: $(pwd)"
+        echo "Checking out tag v1.8.35..."
+        git checkout v1.8.35
+        git submodule update --init --recursive # На случай, если есть подмодули (например, для OpenSSL)
+        echo "Current TDLib version/tag:"
+        git describe --tags
+
+    - name: Build TDLib JNI (Native part)
+      run: |
+        cd td # Переходим в папку td, если предыдущий шаг был в корне
+        mkdir -p build # Создаем папку build, если ее нет, -p чтобы не было ошибки если есть
+        cd build
+        echo "Configuring CMake for TDLib JNI..."
+        cmake -DCMAKE_BUILD_TYPE=Release \
+              -DTD_ENABLE_JNI=ON \
+              -DCMAKE_INSTALL_PREFIX:PATH=../example/java/td/libs/tdlib \
+              -DTD_ENABLE_LTO=ON \
+              ..
+        echo "Building td_jni target..."
+        cmake --build . --target tdjni --config Release -j$(nproc) 
+        # td_jni или tdjni - нужно проверить точное имя цели в CMakeLists.txt TDLib
+        # Используем $(nproc) для параллельной сборки
+
+    - name: Build AAR using Gradle from TDLib example
+      run: |
+        cd td/example/java 
+        # Пример Java в TDLib может использовать свой gradle wrapper
+        echo "Building AAR with Gradle..."
+        # Даем права на выполнение gradlew
+        chmod +x ./gradlew 
+        # ./gradlew :td:assembleRelease # Имя модуля может быть :td, :tdlib или другое
+        # В TDLib 1.8.x пример называется :tdlib
+        ./gradlew :tdlib:assembleRelease 
+
+    - name: Upload AAR artifact
+      uses: actions/upload-artifact@v4 # Используем последнюю версию upload-artifact
+      with:
+        name: tdlib-android-1.8.35-release.aar # Имя артефакта
+        path: td/example/java/tdlib/build/outputs/aar/tdlib-release.aar # Путь к собранному .aar
+        if-no-files-found: error # Завершить с ошибкой, если файл не найден
