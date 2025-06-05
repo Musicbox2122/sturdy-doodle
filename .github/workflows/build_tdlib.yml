@@ -26,18 +26,19 @@ jobs:
 
     - name: Clone TDLib repository and checkout specific version
       run: |
-        git clone https://github.com/tdlib/td.git
+        # Клонируем без ограничения глубины, чтобы получить все теги
+        # Также можно добавить --no-tags и потом fetch --tags, но попробуем так
+        git clone --branch v1.8.35 https://github.com/tdlib/td.git td --depth 1 
+        # Попробуем клонировать сразу нужный тег/ветку с минимальной глубиной
         cd td
         echo "Current directory: $(pwd)"
-        echo "Fetching all tags..."
-        git fetch --all --tags 
-        echo "Available tags (first 20):" # <<< ДОБАВЛЕНО: Для отладки
-        git tag | head -n 20              # <<< ДОБАВЛЕНО: Для отладки
-        echo "Checking out tag v1.8.35..."
-        git checkout v1.8.35 # <<< ИЗМЕНЕНО: Убрали 'tags/'
-        # git submodule update --init --recursive 
-        echo "Current TDLib version/tag:"
-        git describe --tags
+        # echo "Fetching all tags..." # Это может быть уже не нужно при полном клоне
+        # git fetch --all --tags 
+        echo "Available tags (first 20):"
+        git tag --list | head -n 20 # Посмотрим, что видно локально
+        echo "Attempting to verify checkout:"
+        git describe --tags # Это покажет, на каком мы теге/коммите
+        # git submodule update --init --recursive # Раскомментируем, если TDLib этого требует
 
     - name: Build TDLib JNI (Native part)
       run: |
