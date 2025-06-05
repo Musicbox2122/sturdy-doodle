@@ -43,8 +43,6 @@ jobs:
         git checkout v1.8.0
         echo "Current TDLib version/tag after checkout:"
         git describe --tags
-        echo "Listing content of 'td' directory:"
-        ls -la
         
         mkdir -p build 
         cd build
@@ -62,6 +60,18 @@ jobs:
         
         echo "Installing built CMake libraries and headers..."
         cmake --install . --config Release
+        
+        echo "--- Debug before moving to Gradle project ---"
+        echo "Current directory before cd to example: $(pwd)"
+        echo "Content of current directory (td/build):"
+        ls -la
+        echo "Content of parent directory (td):"
+        ls -la ../
+        echo "Content of td/example:"
+        ls -la ../example/
+        echo "Content of td/example/java:"
+        ls -la ../example/java/
+        echo "---------------------------------------------"
         
         echo "Moving to Gradle project directory for AAR build..."
         cd ../example/java/tdlib
